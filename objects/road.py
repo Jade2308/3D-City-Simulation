@@ -13,16 +13,16 @@ class Road:
         self.line_color = (0.9, 0.9, 0.0)  # Yellow lane markers
         
         # Road dimensions
-        self.width = 60.0
-        self.length = 60.0
+        self.road_width = 8.0  # Width of each road
+        self.road_length = 60.0  # Length of each road
         
     def draw(self):
         """Render the road network"""
-        # Draw main horizontal road
-        self.draw_road_segment(-self.length/2, 0, self.length, 4, 'horizontal')
+        # Draw main horizontal road (east-west)
+        self.draw_road_segment(-self.road_length/2, 0, self.road_width, self.road_length, 'horizontal')
         
-        # Draw main vertical road
-        self.draw_road_segment(0, -self.width/2, 4, self.width, 'vertical')
+        # Draw main vertical road (north-south)
+        self.draw_road_segment(0, -self.road_length/2, self.road_width, self.road_length, 'vertical')
         
     def draw_road_segment(self, x, z, width, length, orientation):
         """
