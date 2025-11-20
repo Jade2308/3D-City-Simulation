@@ -12,8 +12,8 @@ def test_road_and_tree_positioning():
     
     # Road parameters (from road.py)
     road_width = 8.0
-    road_elevation = 0.25  # Updated from 0.15
-    road_line_elevation = 0.26  # Updated from 0.16
+    road_elevation = 0.35  # Updated from 0.25
+    road_line_elevation = 0.36  # Updated from 0.26
     
     # Tree parameters (from helpers.py)
     tree_offset = road_width/2 + 2.0  # Updated from 1.5

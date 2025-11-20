@@ -85,29 +85,40 @@ def generate_random_city(num_buildings=15, num_trees=10):
     tree_spacing = 4.0  # Space between trees
     tree_offset = road_width/2 + 2.0  # Distance from road center (increased to avoid overlap)
     
+    # Exclusion zone at intersection to prevent trees from overlapping crossing roads
+    intersection_exclusion = road_width/2 + 2.0  # Exclude trees within this distance from center
+    
     # Trees along horizontal road (top side)
     for i in range(int(road_length / tree_spacing)):
         x = -road_length/2 + i * tree_spacing
         z = tree_offset
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(x) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     # Trees along horizontal road (bottom side)
     for i in range(int(road_length / tree_spacing)):
         x = -road_length/2 + i * tree_spacing
         z = -tree_offset
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(x) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     # Trees along vertical road (left side)
     for i in range(int(road_length / tree_spacing)):
         x = -tree_offset
         z = -road_length/2 + i * tree_spacing
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(z) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     # Trees along vertical road (right side)
     for i in range(int(road_length / tree_spacing)):
         x = tree_offset
         z = -road_length/2 + i * tree_spacing
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(z) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     return buildings, trees
 
