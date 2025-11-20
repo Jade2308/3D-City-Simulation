@@ -40,15 +40,15 @@ class Road:
         glNormal3f(0, 1, 0)
         
         if orientation == 'horizontal':
-            glVertex3f(x, 0.01, z - width/2)
-            glVertex3f(x + length, 0.01, z - width/2)
-            glVertex3f(x + length, 0.01, z + width/2)
-            glVertex3f(x, 0.01, z + width/2)
+            glVertex3f(x, 0.15, z - width/2)
+            glVertex3f(x + length, 0.15, z - width/2)
+            glVertex3f(x + length, 0.15, z + width/2)
+            glVertex3f(x, 0.15, z + width/2)
         else:  # vertical
-            glVertex3f(x - width/2, 0.01, z)
-            glVertex3f(x + width/2, 0.01, z)
-            glVertex3f(x + width/2, 0.01, z + length)
-            glVertex3f(x - width/2, 0.01, z + length)
+            glVertex3f(x - width/2, 0.15, z)
+            glVertex3f(x + width/2, 0.15, z)
+            glVertex3f(x + width/2, 0.15, z + length)
+            glVertex3f(x - width/2, 0.15, z + length)
         
         glEnd()
         
@@ -64,8 +64,8 @@ class Road:
                 start_x = x + i * 2
                 end_x = start_x + 1
                 if end_x <= x + length:
-                    glVertex3f(start_x, 0.02, z)
-                    glVertex3f(end_x, 0.02, z)
+                    glVertex3f(start_x, 0.16, z)
+                    glVertex3f(end_x, 0.16, z)
         else:  # vertical
             # Dashed center line
             num_dashes = int(length / 2)
@@ -73,8 +73,8 @@ class Road:
                 start_z = z + i * 2
                 end_z = start_z + 1
                 if end_z <= z + length:
-                    glVertex3f(x, 0.02, start_z)
-                    glVertex3f(x, 0.02, end_z)
+                    glVertex3f(x, 0.16, start_z)
+                    glVertex3f(x, 0.16, end_z)
         
         glEnd()
         glLineWidth(1.0)
