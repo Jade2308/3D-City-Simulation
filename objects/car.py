@@ -69,9 +69,10 @@ class Car:
         # Position car based on path type
         if self.path_type == 'horizontal':
             glTranslatef(self.position, self.height / 2, self.lane_offset)
+            glRotatef(-90, 0, 1, 0)  # Rotate to face forward (along X axis)
         else:  # vertical
             glTranslatef(self.lane_offset, self.height / 2, self.position)
-            glRotatef(90, 0, 1, 0)  # Rotate to face forward
+            # No rotation needed - car already faces along Z axis
         
         # Set car color
         glColor3f(*self.color)
