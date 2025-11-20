@@ -83,7 +83,7 @@ def generate_random_city(num_buildings=15, num_trees=10):
     
     # Generate trees along both sides of roads
     tree_spacing = 4.0  # Space between trees
-    tree_offset = road_width/2 + 1.5  # Distance from road center
+    tree_offset = road_width/2 + 2.0  # Distance from road center (increased to avoid overlap)
     
     # Trees along horizontal road (top side)
     for i in range(int(road_length / tree_spacing)):
