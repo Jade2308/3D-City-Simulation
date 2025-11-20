@@ -22,7 +22,7 @@ class Road:
         self.draw_road_segment(-self.length/2, 0, 4, self.length, 'horizontal')
         
         # Draw main vertical road (extends in Z direction)
-        self.draw_road_segment(0, -self.width/2, self.width, 4, 'vertical')
+        self.draw_road_segment(0, -self.width/2, 4, self.width, 'vertical')
         
     def draw_road_segment(self, x, z, width, length, orientation):
         """
