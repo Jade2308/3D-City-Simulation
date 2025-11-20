@@ -30,17 +30,39 @@ def generate_random_city(num_buildings=15, num_trees=10):
         (5, 5, 20, 20),       # Top-right
     ]
     
-    # Generate buildings
+    # Generate buildings with collision detection
+    max_attempts = 100
     for _ in range(num_buildings):
-        # Pick random quadrant
-        qx_min, qz_min, qx_max, qz_max = random.choice(quadrants)
-        
-        # Random position within quadrant
-        x = random.uniform(qx_min, qx_max)
-        z = random.uniform(qz_min, qz_max)
-        
-        building = Building(x, z)
-        buildings.append(building)
+        attempts = 0
+        while attempts < max_attempts:
+            # Pick random quadrant
+            qx_min, qz_min, qx_max, qz_max = random.choice(quadrants)
+            
+            # Random position within quadrant
+            x = random.uniform(qx_min, qx_max)
+            z = random.uniform(qz_min, qz_max)
+            
+            building = Building(x, z)
+            
+            # Check for collision with existing buildings
+            collision = False
+            for existing in buildings:
+                # Calculate distance between building centers
+                dx = abs(building.x - existing.x)
+                dz = abs(building.z - existing.z)
+                
+                # Check if buildings overlap (with safety margin)
+                margin = 1.0  # Additional spacing
+                if (dx < (building.width / 2 + existing.width / 2 + margin) and
+                    dz < (building.depth / 2 + existing.depth / 2 + margin)):
+                    collision = True
+                    break
+            
+            if not collision:
+                buildings.append(building)
+                break
+            
+            attempts += 1
     
     # Generate trees (near roads and buildings)
     for _ in range(num_trees):
