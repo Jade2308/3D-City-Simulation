@@ -67,7 +67,7 @@ class Car:
         glPushMatrix()
         
         # Position car based on path type
-        road_height = 0.25  # Match road elevation
+        road_height = 0.35  # Match road elevation
         if self.path_type == 'horizontal':
             glTranslatef(self.position, road_height + self.height / 2, self.lane_offset)
             glRotatef(90, 0, 1, 0)  # Rotate to face along x-axis
