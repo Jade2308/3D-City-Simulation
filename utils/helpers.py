@@ -50,7 +50,10 @@ def generate_random_city(num_buildings=15, num_trees=10):
     road_length = 60.0
     
     # Define safe zones for buildings (avoiding roads with margin)
-    road_margin = 2.0
+    # Buildings must be farther from road than trees to avoid overlap
+    # Trees are at road_width/2 + 2.0 = 6.0, with foliage extending to 7.0
+    # Buildings start at road_width/2 + road_margin, so margin = 4.0 puts buildings at 8.0+
+    road_margin = 4.0
     
     # Quadrant positions (avoiding center cross roads)
     quadrants = [
