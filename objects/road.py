@@ -8,9 +8,10 @@ from OpenGL.GL import *
 class Road:
     def __init__(self):
         """Initialize road parameters"""
-        # Road color (dark gray asphalt)
-        self.color = (0.2, 0.2, 0.2)
+        # Road color (medium gray asphalt - lighter for better visibility when zoomed out)
+        self.color = (0.3, 0.3, 0.3)
         self.line_color = (0.9, 0.9, 0.0)  # Yellow lane markers
+        self.edge_color = (0.9, 0.9, 0.9)  # White edge markers
         
         # Road dimensions
         self.road_width = 8.0  # Width of each road
@@ -40,21 +41,43 @@ class Road:
         glNormal3f(0, 1, 0)
         
         if orientation == 'horizontal':
-            glVertex3f(x, 0.15, z - width/2)
-            glVertex3f(x + length, 0.15, z - width/2)
-            glVertex3f(x + length, 0.15, z + width/2)
-            glVertex3f(x, 0.15, z + width/2)
+            glVertex3f(x, 0.35, z - width/2)
+            glVertex3f(x + length, 0.35, z - width/2)
+            glVertex3f(x + length, 0.35, z + width/2)
+            glVertex3f(x, 0.35, z + width/2)
         else:  # vertical
-            glVertex3f(x - width/2, 0.15, z)
-            glVertex3f(x + width/2, 0.15, z)
-            glVertex3f(x + width/2, 0.15, z + length)
-            glVertex3f(x - width/2, 0.15, z + length)
+            glVertex3f(x - width/2, 0.35, z)
+            glVertex3f(x + width/2, 0.35, z)
+            glVertex3f(x + width/2, 0.35, z + length)
+            glVertex3f(x - width/2, 0.35, z + length)
         
         glEnd()
         
-        # Draw center line
+        # Draw edge lines (white) for better visibility when zoomed out
+        glColor3f(*self.edge_color)
+        glLineWidth(3.0)
+        glBegin(GL_LINES)
+        
+        if orientation == 'horizontal':
+            # Top edge
+            glVertex3f(x, 0.37, z + width/2)
+            glVertex3f(x + length, 0.37, z + width/2)
+            # Bottom edge
+            glVertex3f(x, 0.37, z - width/2)
+            glVertex3f(x + length, 0.37, z - width/2)
+        else:  # vertical
+            # Left edge
+            glVertex3f(x - width/2, 0.37, z)
+            glVertex3f(x - width/2, 0.37, z + length)
+            # Right edge
+            glVertex3f(x + width/2, 0.37, z)
+            glVertex3f(x + width/2, 0.37, z + length)
+        
+        glEnd()
+        
+        # Draw center line (yellow) - increased width for better visibility
         glColor3f(*self.line_color)
-        glLineWidth(2.0)
+        glLineWidth(3.0)
         glBegin(GL_LINES)
         
         if orientation == 'horizontal':
@@ -64,8 +87,8 @@ class Road:
                 start_x = x + i * 2
                 end_x = start_x + 1
                 if end_x <= x + length:
-                    glVertex3f(start_x, 0.16, z)
-                    glVertex3f(end_x, 0.16, z)
+                    glVertex3f(start_x, 0.36, z)
+                    glVertex3f(end_x, 0.36, z)
         else:  # vertical
             # Dashed center line
             num_dashes = int(length / 2)
@@ -73,8 +96,8 @@ class Road:
                 start_z = z + i * 2
                 end_z = start_z + 1
                 if end_z <= z + length:
-                    glVertex3f(x, 0.16, start_z)
-                    glVertex3f(x, 0.16, end_z)
+                    glVertex3f(x, 0.36, start_z)
+                    glVertex3f(x, 0.36, end_z)
         
         glEnd()
         glLineWidth(1.0)

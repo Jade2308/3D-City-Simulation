@@ -50,7 +50,13 @@ def generate_random_city(num_buildings=15, num_trees=10):
     road_length = 60.0
     
     # Define safe zones for buildings (avoiding roads with margin)
-    road_margin = 2.0
+    # Buildings must be farther from road than trees to avoid overlap
+    # Trees are at road_width/2 + 2.0 = 6.0, with foliage extending to 7.0
+    # Buildings can be up to 5 units wide, so half-width = 2.5
+    # To avoid overlap: building_center - 2.5 > 7.0, so building_center > 9.5
+    # Building center at road_width/2 + road_margin, so margin must be > 5.5
+    # Using margin = 7.0 for safety: buildings start at 11.0, inner edge at 8.5
+    road_margin = 7.0
     
     # Quadrant positions (avoiding center cross roads)
     quadrants = [
@@ -83,31 +89,42 @@ def generate_random_city(num_buildings=15, num_trees=10):
     
     # Generate trees along both sides of roads
     tree_spacing = 4.0  # Space between trees
-    tree_offset = road_width/2 + 1.5  # Distance from road center
+    tree_offset = road_width/2 + 2.0  # Distance from road center (increased to avoid overlap)
+    
+    # Exclusion zone at intersection to prevent trees from overlapping crossing roads
+    intersection_exclusion = road_width/2 + 2.0  # Exclude trees within this distance from center
     
     # Trees along horizontal road (top side)
     for i in range(int(road_length / tree_spacing)):
         x = -road_length/2 + i * tree_spacing
         z = tree_offset
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(x) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     # Trees along horizontal road (bottom side)
     for i in range(int(road_length / tree_spacing)):
         x = -road_length/2 + i * tree_spacing
         z = -tree_offset
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(x) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     # Trees along vertical road (left side)
     for i in range(int(road_length / tree_spacing)):
         x = -tree_offset
         z = -road_length/2 + i * tree_spacing
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(z) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     # Trees along vertical road (right side)
     for i in range(int(road_length / tree_spacing)):
         x = tree_offset
         z = -road_length/2 + i * tree_spacing
-        trees.append(Tree(x, z))
+        # Skip trees in intersection zone
+        if abs(z) > intersection_exclusion:
+            trees.append(Tree(x, z))
     
     return buildings, trees
 

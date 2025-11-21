@@ -84,3 +84,24 @@ class Camera:
             self.yaw = 45.0
             self.pitch = -30.0
             self.zoom = 40.0
+    
+    def move_target(self, dx, dz):
+        """
+        Move the camera target (pan the view)
+        Args:
+            dx: Movement in X direction
+            dz: Movement in Z direction
+        """
+        self.target[0] += dx
+        self.target[2] += dz
+    
+    def get_camera_position(self):
+        """
+        Get the current camera position in world coordinates
+        Returns:
+            tuple: (x, y, z) camera position
+        """
+        x = self.target[0] + self.zoom * np.cos(np.radians(self.pitch)) * np.sin(np.radians(self.yaw))
+        y = self.target[1] + self.zoom * np.sin(np.radians(self.pitch))
+        z = self.target[2] + self.zoom * np.cos(np.radians(self.pitch)) * np.cos(np.radians(self.yaw))
+        return (x, y, z)
