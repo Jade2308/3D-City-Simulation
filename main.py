@@ -7,7 +7,7 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import threading
 import sys
 
@@ -230,7 +230,7 @@ class ControlGUI:
         # Create Tkinter window
         self.root = tk.Tk()
         self.root.title("3D City Simulation Controls")
-        self.root.geometry("300x350")
+        self.root.geometry("300x550")
         self.root.resizable(False, False)
         
         # Create GUI elements
@@ -311,6 +311,52 @@ class ControlGUI:
             width=20
         ).pack(pady=2)
         
+        # Add Building section
+        building_frame = tk.LabelFrame(self.root, text="Add Custom Building", padx=10, pady=10)
+        building_frame.pack(padx=10, pady=5, fill='x')
+        
+        # Position controls
+        pos_frame = tk.Frame(building_frame)
+        pos_frame.pack(fill='x', pady=2)
+        tk.Label(pos_frame, text="Position X:", width=10, anchor='w').pack(side=tk.LEFT)
+        self.pos_x = tk.Entry(pos_frame, width=8)
+        self.pos_x.insert(0, "0")
+        self.pos_x.pack(side=tk.LEFT, padx=2)
+        tk.Label(pos_frame, text="Z:", width=3).pack(side=tk.LEFT)
+        self.pos_z = tk.Entry(pos_frame, width=8)
+        self.pos_z.insert(0, "0")
+        self.pos_z.pack(side=tk.LEFT, padx=2)
+        
+        # Size controls
+        size_frame = tk.Frame(building_frame)
+        size_frame.pack(fill='x', pady=2)
+        tk.Label(size_frame, text="Width:", width=10, anchor='w').pack(side=tk.LEFT)
+        self.building_width = tk.Entry(size_frame, width=8)
+        self.building_width.insert(0, "3")
+        self.building_width.pack(side=tk.LEFT, padx=2)
+        tk.Label(size_frame, text="Depth:", width=3).pack(side=tk.LEFT)
+        self.building_depth = tk.Entry(size_frame, width=8)
+        self.building_depth.insert(0, "3")
+        self.building_depth.pack(side=tk.LEFT, padx=2)
+        
+        # Height control
+        height_frame = tk.Frame(building_frame)
+        height_frame.pack(fill='x', pady=2)
+        tk.Label(height_frame, text="Height:", width=10, anchor='w').pack(side=tk.LEFT)
+        self.building_height = tk.Entry(height_frame, width=8)
+        self.building_height.insert(0, "10")
+        self.building_height.pack(side=tk.LEFT, padx=2)
+        
+        # Add Building button
+        tk.Button(
+            building_frame,
+            text="➕ Add Building",
+            command=self.add_building,
+            width=20,
+            bg="#95e1d3",
+            font=("Arial", 9, "bold")
+        ).pack(pady=5)
+        
         # Random city button
         random_frame = tk.Frame(self.root, padx=10, pady=10)
         random_frame.pack(padx=10, pady=5, fill='x')
@@ -345,6 +391,40 @@ class ControlGUI:
     def regenerate_city(self):
         """Regenerate random city layout"""
         self.simulation.generate_city()
+    
+    def add_building(self):
+        """Add a custom building with user-specified parameters"""
+        try:
+            # Get values from input fields
+            x = float(self.pos_x.get())
+            z = float(self.pos_z.get())
+            width = float(self.building_width.get())
+            height = float(self.building_height.get())
+            depth = float(self.building_depth.get())
+            
+            # Validate ranges
+            if width <= 0 or width > 10:
+                tk.messagebox.showwarning("Invalid Input", "Width must be between 0 and 10")
+                return
+            if height <= 0 or height > 30:
+                tk.messagebox.showwarning("Invalid Input", "Height must be between 0 and 30")
+                return
+            if depth <= 0 or depth > 10:
+                tk.messagebox.showwarning("Invalid Input", "Depth must be between 0 and 10")
+                return
+            if abs(x) > 30 or abs(z) > 30:
+                tk.messagebox.showwarning("Invalid Input", "Position must be within ±30 from center")
+                return
+            
+            # Create and add building
+            building = Building(x, z, width=width, height=height, depth=depth)
+            self.simulation.buildings.append(building)
+            
+            # Show success message
+            tk.messagebox.showinfo("Success", f"Building added at ({x}, {z})")
+            
+        except ValueError:
+            tk.messagebox.showerror("Error", "Please enter valid numbers for all fields")
     
     def run(self):
         """Run the GUI main loop"""
