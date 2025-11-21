@@ -84,3 +84,13 @@ class Camera:
             self.yaw = 45.0
             self.pitch = -30.0
             self.zoom = 40.0
+    
+    def move_target(self, dx, dz):
+        """
+        Move the camera target (pan the view)
+        Args:
+            dx: Movement in X direction
+            dz: Movement in Z direction
+        """
+        self.target[0] += dx
+        self.target[2] += dz

@@ -84,6 +84,8 @@ python main.py
 - **2**: Chuyển sang góc nhìn mặt đường
 - **3**: Chuyển sang góc nhìn 45 độ
 - **+/-**: Zoom in/out
+- **Arrow Keys** (↑↓←→): Xoay camera (lên/xuống/trái/phải)
+- **WASD**: Di chuyển vị trí nhìn (W=tiến, S=lùi, A=trái, D=phải)
 - **ESC**: Thoát chương trình
 
 ### Điều khiển chuột

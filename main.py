@@ -120,6 +120,24 @@ class CitySimulation:
                     self.camera.set_preset_view('street')
                 elif event.key == pygame.K_3:
                     self.camera.set_preset_view('45')
+                # Arrow keys for camera rotation
+                elif event.key == pygame.K_LEFT:
+                    self.camera.rotate(-5.0, 0.0)
+                elif event.key == pygame.K_RIGHT:
+                    self.camera.rotate(5.0, 0.0)
+                elif event.key == pygame.K_UP:
+                    self.camera.rotate(0.0, 5.0)
+                elif event.key == pygame.K_DOWN:
+                    self.camera.rotate(0.0, -5.0)
+                # WASD keys for camera panning (moving target)
+                elif event.key == pygame.K_w:
+                    self.camera.move_target(0.0, -2.0)
+                elif event.key == pygame.K_s:
+                    self.camera.move_target(0.0, 2.0)
+                elif event.key == pygame.K_a:
+                    self.camera.move_target(-2.0, 0.0)
+                elif event.key == pygame.K_d:
+                    self.camera.move_target(2.0, 0.0)
         
         return True
     
@@ -341,11 +359,14 @@ def main():
     print("\nControls:")
     print("  Mouse Drag: Rotate camera")
     print("  Mouse Wheel: Zoom in/out")
+    print("  Arrow Keys: Rotate camera (↑↓←→)")
+    print("  WASD: Move view position")
     print("  Space: Pause/Resume animation")
     print("  R: Regenerate city")
     print("  1: Top view")
     print("  2: Street view")
     print("  3: 45° view")
+    print("  +/-: Zoom in/out")
     print("  ESC: Exit")
     print("\nStarting simulation...")
     print("=" * 50)
