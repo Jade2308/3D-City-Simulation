@@ -94,3 +94,14 @@ class Camera:
         """
         self.target[0] += dx
         self.target[2] += dz
+    
+    def get_camera_position(self):
+        """
+        Get the current camera position in world coordinates
+        Returns:
+            tuple: (x, y, z) camera position
+        """
+        x = self.target[0] + self.zoom * np.cos(np.radians(self.pitch)) * np.sin(np.radians(self.yaw))
+        y = self.target[1] + self.zoom * np.sin(np.radians(self.pitch))
+        z = self.target[2] + self.zoom * np.cos(np.radians(self.pitch)) * np.cos(np.radians(self.yaw))
+        return (x, y, z)

@@ -90,6 +90,7 @@ python main.py
 
 ### Điều khiển chuột
 - **Kéo chuột trái**: Xoay camera
+- **Nhấn chuột phải**: Thêm tòa nhà tại vị trí click (hiện hộp thoại nhập kích thước)
 - **Con lăn chuột**: Zoom in/out
 
 ### Giao diện điều khiển
