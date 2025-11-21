@@ -66,6 +66,129 @@ class CitySimulation:
         """Generate or regenerate city layout"""
         self.buildings, self.trees = generate_random_city(num_buildings=15, num_trees=10)
         self.cars = create_cars(num_cars=4)
+    
+    def screen_to_world(self, mouse_x, mouse_y):
+        """
+        Convert screen coordinates to world coordinates on the ground plane (y=0)
+        Args:
+            mouse_x: Mouse X coordinate in screen space
+            mouse_y: Mouse Y coordinate in screen space
+        Returns:
+            tuple: (x, z) world coordinates or None if no intersection
+        """
+        # Get viewport, modelview, and projection matrices
+        viewport = glGetIntegerv(GL_VIEWPORT)
+        modelview = glGetDoublev(GL_MODELVIEW_MATRIX)
+        projection = glGetDoublev(GL_PROJECTION_MATRIX)
+        
+        # Convert mouse coordinates to OpenGL coordinates (flip Y)
+        win_x = float(mouse_x)
+        win_y = float(viewport[3] - mouse_y)
+        
+        # Unproject at near and far planes
+        try:
+            # Near plane
+            near_point = gluUnProject(win_x, win_y, 0.0, modelview, projection, viewport)
+            # Far plane
+            far_point = gluUnProject(win_x, win_y, 1.0, modelview, projection, viewport)
+            
+            # Calculate intersection with ground plane (y = 0)
+            # Ray equation: P = near_point + t * (far_point - near_point)
+            # For ground plane: y = 0
+            # near_point[1] + t * (far_point[1] - near_point[1]) = 0
+            
+            if abs(far_point[1] - near_point[1]) < 0.0001:
+                return None  # Ray is parallel to ground
+            
+            t = -near_point[1] / (far_point[1] - near_point[1])
+            
+            if t < 0 or t > 1:
+                return None  # Intersection is outside the ray segment
+            
+            # Calculate world coordinates
+            world_x = near_point[0] + t * (far_point[0] - near_point[0])
+            world_z = near_point[2] + t * (far_point[2] - near_point[2])
+            
+            return (world_x, world_z)
+        except:
+            return None
+    
+    def show_building_dialog(self, x, z):
+        """
+        Show a dialog to input building parameters and create building at position
+        Args:
+            x: X coordinate in world space
+            z: Z coordinate in world space
+        """
+        # Create a simple dialog window
+        dialog = tk.Toplevel()
+        dialog.title("Add Building")
+        dialog.geometry("300x220")
+        dialog.resizable(False, False)
+        dialog.transient()  # Keep on top
+        dialog.grab_set()  # Modal dialog
+        
+        # Position label
+        tk.Label(dialog, text=f"Position: X={x:.1f}, Z={z:.1f}", 
+                font=("Arial", 10, "bold")).pack(pady=10)
+        
+        # Width input
+        width_frame = tk.Frame(dialog)
+        width_frame.pack(pady=5)
+        tk.Label(width_frame, text="Width:", width=10, anchor='w').pack(side=tk.LEFT)
+        width_entry = tk.Entry(width_frame, width=10)
+        width_entry.insert(0, "3")
+        width_entry.pack(side=tk.LEFT)
+        
+        # Depth input
+        depth_frame = tk.Frame(dialog)
+        depth_frame.pack(pady=5)
+        tk.Label(depth_frame, text="Depth:", width=10, anchor='w').pack(side=tk.LEFT)
+        depth_entry = tk.Entry(depth_frame, width=10)
+        depth_entry.insert(0, "3")
+        depth_entry.pack(side=tk.LEFT)
+        
+        # Height input
+        height_frame = tk.Frame(dialog)
+        height_frame.pack(pady=5)
+        tk.Label(height_frame, text="Height:", width=10, anchor='w').pack(side=tk.LEFT)
+        height_entry = tk.Entry(height_frame, width=10)
+        height_entry.insert(0, "10")
+        height_entry.pack(side=tk.LEFT)
+        
+        # Buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=15)
+        
+        def create_building():
+            try:
+                width = float(width_entry.get())
+                depth = float(depth_entry.get())
+                height = float(height_entry.get())
+                
+                # Validate
+                if width <= 0 or width > 10:
+                    messagebox.showwarning("Invalid Input", "Width must be between 0 and 10")
+                    return
+                if depth <= 0 or depth > 10:
+                    messagebox.showwarning("Invalid Input", "Depth must be between 0 and 10")
+                    return
+                if height <= 0 or height > 30:
+                    messagebox.showwarning("Invalid Input", "Height must be between 0 and 30")
+                    return
+                
+                # Create building
+                building = Building(x, z, width=width, height=height, depth=depth)
+                self.buildings.append(building)
+                dialog.destroy()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Please enter valid numbers")
+        
+        tk.Button(button_frame, text="Create", command=create_building, 
+                 width=10, bg="#51cf66", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Cancel", command=dialog.destroy, 
+                 width=10).pack(side=tk.LEFT, padx=5)
         
     def handle_events(self):
         """Handle pygame events (keyboard, mouse)"""
@@ -78,6 +201,12 @@ class CitySimulation:
                 if event.button == 1:  # Left mouse button
                     self.mouse_down = True
                     self.last_mouse_x, self.last_mouse_y = event.pos
+                elif event.button == 3:  # Right mouse button
+                    # Get world coordinates from mouse position
+                    world_pos = self.screen_to_world(event.pos[0], event.pos[1])
+                    if world_pos:
+                        # Show dialog to add building at this position
+                        self.show_building_dialog(world_pos[0], world_pos[1])
                 elif event.button == 4:  # Mouse wheel up (zoom in)
                     self.camera.zoom_camera(-2.0)
                 elif event.button == 5:  # Mouse wheel down (zoom out)
