@@ -27,6 +27,11 @@ from utils.helpers import generate_random_city, create_cars
 
 
 class CitySimulation:
+    # UI Color constants
+    BUTTON_COLOR = (0.3, 0.7, 0.4)
+    BUTTON_HOVER_COLOR = (0.4, 0.8, 0.5)
+    BUTTON_BORDER_COLOR = (0.2, 0.5, 0.3)
+    
     def __init__(self):
         """Initialize the 3D city simulation"""
         # Renderer setup
@@ -74,6 +79,23 @@ class CitySimulation:
         """Generate or regenerate city layout"""
         self.buildings, self.trees = generate_random_city(num_buildings=15, num_trees=10)
         self.cars = create_cars(num_cars=4)
+    
+    def validate_building_params(self, width, height, depth, x=None, z=None):
+        """
+        Validate building parameters
+        Returns: (is_valid, error_message)
+        """
+        if width <= 0 or width > 10:
+            return False, "Width must be between 0 and 10"
+        if height <= 0 or height > 30:
+            return False, "Height must be between 0 and 30"
+        if depth <= 0 or depth > 10:
+            return False, "Depth must be between 0 and 10"
+        if x is not None and abs(x) > 50:
+            return False, "Position X must be within ±50 from center"
+        if z is not None and abs(z) > 50:
+            return False, "Position Z must be within ±50 from center"
+        return True, None
     
     def screen_to_world(self, mouse_x, mouse_y):
         """
@@ -174,15 +196,10 @@ class CitySimulation:
                 depth = float(depth_entry.get())
                 height = float(height_entry.get())
                 
-                # Validate
-                if width <= 0 or width > 10:
-                    messagebox.showwarning("Invalid Input", "Width must be between 0 and 10")
-                    return
-                if depth <= 0 or depth > 10:
-                    messagebox.showwarning("Invalid Input", "Depth must be between 0 and 10")
-                    return
-                if height <= 0 or height > 30:
-                    messagebox.showwarning("Invalid Input", "Height must be between 0 and 30")
+                # Validate using shared method
+                is_valid, error_msg = self.validate_building_params(width, height, depth)
+                if not is_valid:
+                    messagebox.showwarning("Invalid Input", error_msg)
                     return
                 
                 # Create building
@@ -266,19 +283,10 @@ class CitySimulation:
                 depth = float(depth_entry.get())
                 height = float(height_entry.get())
                 
-                # Validate position
-                if abs(x) > 50 or abs(z) > 50:
-                    messagebox.showwarning("Invalid Input", "Position must be within ±50 from center")
-                    return
-                # Validate dimensions
-                if width <= 0 or width > 10:
-                    messagebox.showwarning("Invalid Input", "Width must be between 0 and 10")
-                    return
-                if depth <= 0 or depth > 10:
-                    messagebox.showwarning("Invalid Input", "Depth must be between 0 and 10")
-                    return
-                if height <= 0 or height > 30:
-                    messagebox.showwarning("Invalid Input", "Height must be between 0 and 30")
+                # Validate using shared method
+                is_valid, error_msg = self.validate_building_params(width, height, depth, x, z)
+                if not is_valid:
+                    messagebox.showwarning("Invalid Input", error_msg)
                     return
                 
                 # Create building
@@ -441,7 +449,7 @@ class CitySimulation:
         glDisable(GL_LIGHTING)
         
         # Draw Add Building button
-        button_color = (0.4, 0.8, 0.5) if self.button_hovered else (0.3, 0.7, 0.4)
+        button_color = self.BUTTON_HOVER_COLOR if self.button_hovered else self.BUTTON_COLOR
         self.draw_button(self.add_button_rect, "➕ Add Building", button_color)
         
         # Re-enable depth test and lighting
@@ -466,7 +474,7 @@ class CitySimulation:
         glEnd()
         
         # Draw button border
-        glColor3f(0.2, 0.5, 0.3)
+        glColor3f(*self.BUTTON_BORDER_COLOR)
         glLineWidth(2)
         glBegin(GL_LINE_LOOP)
         glVertex2f(rect.left, rect.top)
@@ -490,7 +498,7 @@ class CitySimulation:
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         
         # Draw the text texture
-        glRasterPos2f(text_x, rect.bottom - (rect.height - text_height) // 2)
+        glRasterPos2f(text_x, text_y + text_height)
         glDrawPixels(text_width, text_height, GL_RGBA, GL_UNSIGNED_BYTE, text_data)
         
         glDisable(GL_BLEND)
