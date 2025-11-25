@@ -78,8 +78,9 @@ class CitySimulation:
         
         # GUI event queue for cross-thread communication
         # Tkinter is not thread-safe, so we use a queue to schedule GUI actions
-        # from the Pygame thread to be executed in the GUI thread
-        self.gui_event_queue = None  # Set by main() after creating ControlGUI
+        # from the Pygame thread to be executed in the GUI thread.
+        # Set to None initially; main() assigns the shared queue before starting threads.
+        self.gui_event_queue = None
         
     def generate_city(self):
         """Generate or regenerate city layout"""
@@ -635,16 +636,23 @@ class ControlGUI:
         Process any pending events in the event queue.
         This method runs in the GUI thread and is scheduled repeatedly via root.after().
         """
+        from queue import Empty
         try:
-            while not self.event_queue.empty():
-                event = self.event_queue.get_nowait()
+            # Use try/except with get_nowait() to avoid race conditions.
+            # Checking empty() then calling get_nowait() is not thread-safe.
+            while True:
+                try:
+                    event = self.event_queue.get_nowait()
+                except Empty:
+                    break
                 if event[0] == 'open_add_building_dialog':
                     _, x, z = event
                     self.open_add_building_dialog(x, z)
         except Exception as e:
             print(f"Error processing GUI event queue: {e}")
         finally:
-            # Schedule the next poll (every 50ms)
+            # Schedule the next poll.
+            # 50ms provides responsive UI while minimizing CPU usage.
             self.root.after(50, self._process_event_queue)
     
     def open_add_building_dialog(self, x=None, z=None):
