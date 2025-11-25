@@ -27,6 +27,11 @@ from utils.helpers import generate_random_city, create_cars
 
 
 class CitySimulation:
+    # UI Color constants
+    BUTTON_COLOR = (0.3, 0.7, 0.4)
+    BUTTON_HOVER_COLOR = (0.4, 0.8, 0.5)
+    BUTTON_BORDER_COLOR = (0.2, 0.5, 0.3)
+    
     def __init__(self):
         """Initialize the 3D city simulation"""
         # Renderer setup
@@ -62,10 +67,35 @@ class CitySimulation:
         self.clock = pygame.time.Clock()
         self.fps = 60
         
+        # UI button state
+        self.add_button_rect = pygame.Rect(10, 10, 140, 35)
+        self.button_hovered = False
+        
+        # Initialize fonts for UI
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 14, bold=True)
+        
     def generate_city(self):
         """Generate or regenerate city layout"""
         self.buildings, self.trees = generate_random_city(num_buildings=15, num_trees=10)
         self.cars = create_cars(num_cars=4)
+    
+    def validate_building_params(self, width, height, depth, x=None, z=None):
+        """
+        Validate building parameters
+        Returns: (is_valid, error_message)
+        """
+        if width <= 0 or width > 10:
+            return False, "Width must be between 0 and 10"
+        if height <= 0 or height > 30:
+            return False, "Height must be between 0 and 30"
+        if depth <= 0 or depth > 10:
+            return False, "Depth must be between 0 and 10"
+        if x is not None and abs(x) > 50:
+            return False, "Position X must be within ±50 from center"
+        if z is not None and abs(z) > 50:
+            return False, "Position Z must be within ±50 from center"
+        return True, None
     
     def screen_to_world(self, mouse_x, mouse_y):
         """
@@ -166,15 +196,97 @@ class CitySimulation:
                 depth = float(depth_entry.get())
                 height = float(height_entry.get())
                 
-                # Validate
-                if width <= 0 or width > 10:
-                    messagebox.showwarning("Invalid Input", "Width must be between 0 and 10")
+                # Validate using shared method
+                is_valid, error_msg = self.validate_building_params(width, height, depth)
+                if not is_valid:
+                    messagebox.showwarning("Invalid Input", error_msg)
                     return
-                if depth <= 0 or depth > 10:
-                    messagebox.showwarning("Invalid Input", "Depth must be between 0 and 10")
-                    return
-                if height <= 0 or height > 30:
-                    messagebox.showwarning("Invalid Input", "Height must be between 0 and 30")
+                
+                # Create building
+                building = Building(x, z, width=width, height=height, depth=depth)
+                self.buildings.append(building)
+                dialog.destroy()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Please enter valid numbers")
+        
+        tk.Button(button_frame, text="Create", command=create_building, 
+                 width=10, bg="#51cf66", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Cancel", command=dialog.destroy, 
+                 width=10).pack(side=tk.LEFT, padx=5)
+    
+    def show_add_building_panel(self):
+        """
+        Show a panel to input building position and size, then create the building
+        """
+        # Create a simple dialog window
+        dialog = tk.Toplevel()
+        dialog.title("Add Building")
+        dialog.geometry("320x280")
+        dialog.resizable(False, False)
+        dialog.transient()  # Keep on top
+        dialog.grab_set()  # Modal dialog
+        
+        # Title
+        tk.Label(dialog, text="Add New Building", 
+                font=("Arial", 12, "bold")).pack(pady=10)
+        
+        # Position X input
+        pos_x_frame = tk.Frame(dialog)
+        pos_x_frame.pack(pady=5)
+        tk.Label(pos_x_frame, text="Position X:", width=12, anchor='w').pack(side=tk.LEFT)
+        pos_x_entry = tk.Entry(pos_x_frame, width=10)
+        pos_x_entry.insert(0, "0")
+        pos_x_entry.pack(side=tk.LEFT)
+        
+        # Position Z input
+        pos_z_frame = tk.Frame(dialog)
+        pos_z_frame.pack(pady=5)
+        tk.Label(pos_z_frame, text="Position Z:", width=12, anchor='w').pack(side=tk.LEFT)
+        pos_z_entry = tk.Entry(pos_z_frame, width=10)
+        pos_z_entry.insert(0, "0")
+        pos_z_entry.pack(side=tk.LEFT)
+        
+        # Width input
+        width_frame = tk.Frame(dialog)
+        width_frame.pack(pady=5)
+        tk.Label(width_frame, text="Width:", width=12, anchor='w').pack(side=tk.LEFT)
+        width_entry = tk.Entry(width_frame, width=10)
+        width_entry.insert(0, "3")
+        width_entry.pack(side=tk.LEFT)
+        
+        # Depth input
+        depth_frame = tk.Frame(dialog)
+        depth_frame.pack(pady=5)
+        tk.Label(depth_frame, text="Depth:", width=12, anchor='w').pack(side=tk.LEFT)
+        depth_entry = tk.Entry(depth_frame, width=10)
+        depth_entry.insert(0, "3")
+        depth_entry.pack(side=tk.LEFT)
+        
+        # Height input
+        height_frame = tk.Frame(dialog)
+        height_frame.pack(pady=5)
+        tk.Label(height_frame, text="Height:", width=12, anchor='w').pack(side=tk.LEFT)
+        height_entry = tk.Entry(height_frame, width=10)
+        height_entry.insert(0, "10")
+        height_entry.pack(side=tk.LEFT)
+        
+        # Buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=15)
+        
+        def create_building():
+            try:
+                x = float(pos_x_entry.get())
+                z = float(pos_z_entry.get())
+                width = float(width_entry.get())
+                depth = float(depth_entry.get())
+                height = float(height_entry.get())
+                
+                # Validate using shared method
+                is_valid, error_msg = self.validate_building_params(width, height, depth, x, z)
+                if not is_valid:
+                    messagebox.showwarning("Invalid Input", error_msg)
                     return
                 
                 # Create building
@@ -199,8 +311,12 @@ class CitySimulation:
             # Mouse button events
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button
-                    self.mouse_down = True
-                    self.last_mouse_x, self.last_mouse_y = event.pos
+                    # Check if clicking on Add Building button
+                    if self.add_button_rect.collidepoint(event.pos):
+                        self.show_add_building_panel()
+                    else:
+                        self.mouse_down = True
+                        self.last_mouse_x, self.last_mouse_y = event.pos
                 elif event.button == 3:  # Right mouse button
                     # Get world coordinates from mouse position
                     world_pos = self.screen_to_world(event.pos[0], event.pos[1])
@@ -216,8 +332,11 @@ class CitySimulation:
                 if event.button == 1:
                     self.mouse_down = False
                     
-            # Mouse motion for camera rotation
+            # Mouse motion for camera rotation and button hover
             elif event.type == pygame.MOUSEMOTION:
+                # Check button hover state
+                self.button_hovered = self.add_button_rect.collidepoint(event.pos)
+                
                 if self.mouse_down:
                     x, y = event.pos
                     dx = x - self.last_mouse_x
@@ -305,8 +424,84 @@ class CitySimulation:
         for car in self.cars:
             car.draw()
         
+        # Draw 2D UI elements on top
+        self.draw_ui()
+        
         # Swap buffers
         self.renderer.swap_buffers()
+    
+    def draw_ui(self):
+        """Draw 2D UI elements (buttons) on top of 3D scene"""
+        # Save current OpenGL state
+        glMatrixMode(GL_PROJECTION)
+        glPushMatrix()
+        glLoadIdentity()
+        
+        # Set up orthographic projection for 2D drawing
+        glOrtho(0, self.renderer.width, self.renderer.height, 0, -1, 1)
+        
+        glMatrixMode(GL_MODELVIEW)
+        glPushMatrix()
+        glLoadIdentity()
+        
+        # Disable depth test and lighting for 2D UI
+        glDisable(GL_DEPTH_TEST)
+        glDisable(GL_LIGHTING)
+        
+        # Draw Add Building button
+        button_color = self.BUTTON_HOVER_COLOR if self.button_hovered else self.BUTTON_COLOR
+        self.draw_button(self.add_button_rect, "➕ Add Building", button_color)
+        
+        # Re-enable depth test and lighting
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+        
+        # Restore OpenGL state
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+        glPopMatrix()
+    
+    def draw_button(self, rect, text, color):
+        """Draw a button with text"""
+        # Draw button background
+        glColor3f(*color)
+        glBegin(GL_QUADS)
+        glVertex2f(rect.left, rect.top)
+        glVertex2f(rect.right, rect.top)
+        glVertex2f(rect.right, rect.bottom)
+        glVertex2f(rect.left, rect.bottom)
+        glEnd()
+        
+        # Draw button border
+        glColor3f(*self.BUTTON_BORDER_COLOR)
+        glLineWidth(2)
+        glBegin(GL_LINE_LOOP)
+        glVertex2f(rect.left, rect.top)
+        glVertex2f(rect.right, rect.top)
+        glVertex2f(rect.right, rect.bottom)
+        glVertex2f(rect.left, rect.bottom)
+        glEnd()
+        
+        # Draw text using pygame (render to surface then display)
+        # Note: OpenGL text rendering is complex, so we'll use pygame surface
+        text_surface = self.font.render(text, True, (255, 255, 255))
+        text_data = pygame.image.tostring(text_surface, "RGBA", True)
+        text_width, text_height = text_surface.get_size()
+        
+        # Position text in center of button
+        text_x = rect.left + (rect.width - text_width) // 2
+        text_y = rect.top + (rect.height - text_height) // 2
+        
+        # Enable blending for text transparency
+        glEnable(GL_BLEND)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        
+        # Draw the text texture
+        glRasterPos2f(text_x, text_y + text_height)
+        glDrawPixels(text_width, text_height, GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+        
+        glDisable(GL_BLEND)
     
     def draw_ground(self):
         """Draw simple ground plane"""
