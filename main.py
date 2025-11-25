@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
 import sys
+from queue import Queue
 
 # Import engine components
 from engine.renderer import Renderer
@@ -75,6 +76,11 @@ class CitySimulation:
         pygame.font.init()
         self.font = pygame.font.SysFont('Arial', 14, bold=True)
         
+        # GUI event queue for cross-thread communication
+        # Tkinter is not thread-safe, so we use a queue to schedule GUI actions
+        # from the Pygame thread to be executed in the GUI thread
+        self.gui_event_queue = None  # Set by main() after creating ControlGUI
+        
     def generate_city(self):
         """Generate or regenerate city layout"""
         self.buildings, self.trees = generate_random_city(num_buildings=15, num_trees=10)
@@ -96,6 +102,23 @@ class CitySimulation:
         if z is not None and abs(z) > 50:
             return False, "Position Z must be within ±50 from center"
         return True, None
+    
+    def _request_add_building_dialog(self, x=None, z=None):
+        """
+        Request the GUI to open an Add Building dialog.
+        This schedules the dialog creation in the GUI thread because Tkinter
+        is not thread-safe and all Tkinter operations must run in the thread
+        where root.mainloop() is running.
+        
+        Args:
+            x: Optional X world coordinate (used when right-clicking)
+            z: Optional Z world coordinate (used when right-clicking)
+        """
+        if self.gui_event_queue is not None:
+            # Push event to queue; GUI thread will process it
+            self.gui_event_queue.put(('open_add_building_dialog', x, z))
+        else:
+            print("Warning: GUI event queue not set; cannot open Tk dialog from Pygame thread")
     
     def screen_to_world(self, mouse_x, mouse_y):
         """
@@ -143,165 +166,6 @@ class CitySimulation:
         except:
             return None
     
-    def show_building_dialog(self, x, z):
-        """
-        Show a dialog to input building parameters and create building at position
-        Args:
-            x: X coordinate in world space
-            z: Z coordinate in world space
-        """
-        # Create a simple dialog window
-        dialog = tk.Toplevel()
-        dialog.title("Add Building")
-        dialog.geometry("300x220")
-        dialog.resizable(False, False)
-        dialog.transient()  # Keep on top
-        dialog.grab_set()  # Modal dialog
-        
-        # Position label
-        tk.Label(dialog, text=f"Position: X={x:.1f}, Z={z:.1f}", 
-                font=("Arial", 10, "bold")).pack(pady=10)
-        
-        # Width input
-        width_frame = tk.Frame(dialog)
-        width_frame.pack(pady=5)
-        tk.Label(width_frame, text="Width:", width=10, anchor='w').pack(side=tk.LEFT)
-        width_entry = tk.Entry(width_frame, width=10)
-        width_entry.insert(0, "3")
-        width_entry.pack(side=tk.LEFT)
-        
-        # Depth input
-        depth_frame = tk.Frame(dialog)
-        depth_frame.pack(pady=5)
-        tk.Label(depth_frame, text="Depth:", width=10, anchor='w').pack(side=tk.LEFT)
-        depth_entry = tk.Entry(depth_frame, width=10)
-        depth_entry.insert(0, "3")
-        depth_entry.pack(side=tk.LEFT)
-        
-        # Height input
-        height_frame = tk.Frame(dialog)
-        height_frame.pack(pady=5)
-        tk.Label(height_frame, text="Height:", width=10, anchor='w').pack(side=tk.LEFT)
-        height_entry = tk.Entry(height_frame, width=10)
-        height_entry.insert(0, "10")
-        height_entry.pack(side=tk.LEFT)
-        
-        # Buttons
-        button_frame = tk.Frame(dialog)
-        button_frame.pack(pady=15)
-        
-        def create_building():
-            try:
-                width = float(width_entry.get())
-                depth = float(depth_entry.get())
-                height = float(height_entry.get())
-                
-                # Validate using shared method
-                is_valid, error_msg = self.validate_building_params(width, height, depth)
-                if not is_valid:
-                    messagebox.showwarning("Invalid Input", error_msg)
-                    return
-                
-                # Create building
-                building = Building(x, z, width=width, height=height, depth=depth)
-                self.buildings.append(building)
-                dialog.destroy()
-                
-            except ValueError:
-                messagebox.showerror("Error", "Please enter valid numbers")
-        
-        tk.Button(button_frame, text="Create", command=create_building, 
-                 width=10, bg="#51cf66", fg="white").pack(side=tk.LEFT, padx=5)
-        tk.Button(button_frame, text="Cancel", command=dialog.destroy, 
-                 width=10).pack(side=tk.LEFT, padx=5)
-    
-    def show_add_building_panel(self):
-        """
-        Show a panel to input building position and size, then create the building
-        """
-        # Create a simple dialog window
-        dialog = tk.Toplevel()
-        dialog.title("Add Building")
-        dialog.geometry("320x280")
-        dialog.resizable(False, False)
-        dialog.transient()  # Keep on top
-        dialog.grab_set()  # Modal dialog
-        
-        # Title
-        tk.Label(dialog, text="Add New Building", 
-                font=("Arial", 12, "bold")).pack(pady=10)
-        
-        # Position X input
-        pos_x_frame = tk.Frame(dialog)
-        pos_x_frame.pack(pady=5)
-        tk.Label(pos_x_frame, text="Position X:", width=12, anchor='w').pack(side=tk.LEFT)
-        pos_x_entry = tk.Entry(pos_x_frame, width=10)
-        pos_x_entry.insert(0, "0")
-        pos_x_entry.pack(side=tk.LEFT)
-        
-        # Position Z input
-        pos_z_frame = tk.Frame(dialog)
-        pos_z_frame.pack(pady=5)
-        tk.Label(pos_z_frame, text="Position Z:", width=12, anchor='w').pack(side=tk.LEFT)
-        pos_z_entry = tk.Entry(pos_z_frame, width=10)
-        pos_z_entry.insert(0, "0")
-        pos_z_entry.pack(side=tk.LEFT)
-        
-        # Width input
-        width_frame = tk.Frame(dialog)
-        width_frame.pack(pady=5)
-        tk.Label(width_frame, text="Width:", width=12, anchor='w').pack(side=tk.LEFT)
-        width_entry = tk.Entry(width_frame, width=10)
-        width_entry.insert(0, "3")
-        width_entry.pack(side=tk.LEFT)
-        
-        # Depth input
-        depth_frame = tk.Frame(dialog)
-        depth_frame.pack(pady=5)
-        tk.Label(depth_frame, text="Depth:", width=12, anchor='w').pack(side=tk.LEFT)
-        depth_entry = tk.Entry(depth_frame, width=10)
-        depth_entry.insert(0, "3")
-        depth_entry.pack(side=tk.LEFT)
-        
-        # Height input
-        height_frame = tk.Frame(dialog)
-        height_frame.pack(pady=5)
-        tk.Label(height_frame, text="Height:", width=12, anchor='w').pack(side=tk.LEFT)
-        height_entry = tk.Entry(height_frame, width=10)
-        height_entry.insert(0, "10")
-        height_entry.pack(side=tk.LEFT)
-        
-        # Buttons
-        button_frame = tk.Frame(dialog)
-        button_frame.pack(pady=15)
-        
-        def create_building():
-            try:
-                x = float(pos_x_entry.get())
-                z = float(pos_z_entry.get())
-                width = float(width_entry.get())
-                depth = float(depth_entry.get())
-                height = float(height_entry.get())
-                
-                # Validate using shared method
-                is_valid, error_msg = self.validate_building_params(width, height, depth, x, z)
-                if not is_valid:
-                    messagebox.showwarning("Invalid Input", error_msg)
-                    return
-                
-                # Create building
-                building = Building(x, z, width=width, height=height, depth=depth)
-                self.buildings.append(building)
-                dialog.destroy()
-                
-            except ValueError:
-                messagebox.showerror("Error", "Please enter valid numbers")
-        
-        tk.Button(button_frame, text="Create", command=create_building, 
-                 width=10, bg="#51cf66", fg="white").pack(side=tk.LEFT, padx=5)
-        tk.Button(button_frame, text="Cancel", command=dialog.destroy, 
-                 width=10).pack(side=tk.LEFT, padx=5)
-        
     def handle_events(self):
         """Handle pygame events (keyboard, mouse)"""
         for event in pygame.event.get():
@@ -313,7 +177,8 @@ class CitySimulation:
                 if event.button == 1:  # Left mouse button
                     # Check if clicking on Add Building button
                     if self.add_button_rect.collidepoint(event.pos):
-                        self.show_add_building_panel()
+                        # Schedule dialog to open in GUI thread (Tkinter is not thread-safe)
+                        self._request_add_building_dialog()
                     else:
                         self.mouse_down = True
                         self.last_mouse_x, self.last_mouse_y = event.pos
@@ -321,8 +186,9 @@ class CitySimulation:
                     # Get world coordinates from mouse position
                     world_pos = self.screen_to_world(event.pos[0], event.pos[1])
                     if world_pos:
-                        # Show dialog to add building at this position
-                        self.show_building_dialog(world_pos[0], world_pos[1])
+                        # Schedule dialog to open in GUI thread with position
+                        # (Tkinter is not thread-safe)
+                        self._request_add_building_dialog(world_pos[0], world_pos[1])
                 elif event.button == 4:  # Mouse wheel up (zoom in)
                     self.camera.zoom_camera(-2.0)
                 elif event.button == 5:  # Mouse wheel down (zoom out)
@@ -543,13 +409,15 @@ class CitySimulation:
 class ControlGUI:
     """Tkinter GUI for controlling the simulation"""
     
-    def __init__(self, simulation):
+    def __init__(self, simulation, event_queue):
         """
         Initialize control GUI
         Args:
             simulation: CitySimulation instance to control
+            event_queue: Thread-safe queue for receiving GUI events from Pygame thread
         """
         self.simulation = simulation
+        self.event_queue = event_queue
         
         # Create Tkinter window
         self.root = tk.Tk()
@@ -559,6 +427,10 @@ class ControlGUI:
         
         # Create GUI elements
         self.create_widgets()
+        
+        # Start polling the event queue for cross-thread GUI requests
+        # This is necessary because Tkinter is not thread-safe
+        self._start_event_queue_polling()
         
     def create_widgets(self):
         """Create GUI control widgets"""
@@ -750,6 +622,206 @@ class ControlGUI:
         except ValueError:
             tk.messagebox.showerror("Error", "Please enter valid numbers for all fields")
     
+    def _start_event_queue_polling(self):
+        """
+        Start polling the event queue for GUI actions requested from the Pygame thread.
+        Tkinter is not thread-safe, so we use root.after() to schedule queue polling
+        in the GUI thread (the thread running mainloop).
+        """
+        self._process_event_queue()
+    
+    def _process_event_queue(self):
+        """
+        Process any pending events in the event queue.
+        This method runs in the GUI thread and is scheduled repeatedly via root.after().
+        """
+        try:
+            while not self.event_queue.empty():
+                event = self.event_queue.get_nowait()
+                if event[0] == 'open_add_building_dialog':
+                    _, x, z = event
+                    self.open_add_building_dialog(x, z)
+        except Exception as e:
+            print(f"Error processing GUI event queue: {e}")
+        finally:
+            # Schedule the next poll (every 50ms)
+            self.root.after(50, self._process_event_queue)
+    
+    def open_add_building_dialog(self, x=None, z=None):
+        """
+        Open the Add Building dialog in the GUI thread.
+        This method must only be called from the GUI thread (via queue processing).
+        
+        Args:
+            x: Optional X world coordinate (pre-fills position if provided)
+            z: Optional Z world coordinate (pre-fills position if provided)
+        """
+        if x is not None and z is not None:
+            # Right-click case: position is provided from world coordinates
+            self._open_building_dialog_with_position(x, z)
+        else:
+            # Left-click on Add Building button: show full dialog with position entry
+            self._open_building_dialog_full()
+    
+    def _open_building_dialog_with_position(self, x, z):
+        """
+        Show dialog for adding building at a specific position (right-click case).
+        Position is pre-set and displayed but not editable.
+        
+        Args:
+            x: X world coordinate
+            z: Z world coordinate
+        """
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Add Building")
+        dialog.geometry("300x220")
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.grab_set()  # Modal dialog
+        
+        # Position label
+        tk.Label(dialog, text=f"Position: X={x:.1f}, Z={z:.1f}", 
+                font=("Arial", 10, "bold")).pack(pady=10)
+        
+        # Width input
+        width_frame = tk.Frame(dialog)
+        width_frame.pack(pady=5)
+        tk.Label(width_frame, text="Width:", width=10, anchor='w').pack(side=tk.LEFT)
+        width_entry = tk.Entry(width_frame, width=10)
+        width_entry.insert(0, "3")
+        width_entry.pack(side=tk.LEFT)
+        
+        # Depth input
+        depth_frame = tk.Frame(dialog)
+        depth_frame.pack(pady=5)
+        tk.Label(depth_frame, text="Depth:", width=10, anchor='w').pack(side=tk.LEFT)
+        depth_entry = tk.Entry(depth_frame, width=10)
+        depth_entry.insert(0, "3")
+        depth_entry.pack(side=tk.LEFT)
+        
+        # Height input
+        height_frame = tk.Frame(dialog)
+        height_frame.pack(pady=5)
+        tk.Label(height_frame, text="Height:", width=10, anchor='w').pack(side=tk.LEFT)
+        height_entry = tk.Entry(height_frame, width=10)
+        height_entry.insert(0, "10")
+        height_entry.pack(side=tk.LEFT)
+        
+        # Buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=15)
+        
+        def create_building():
+            try:
+                width = float(width_entry.get())
+                depth = float(depth_entry.get())
+                height = float(height_entry.get())
+                
+                # Validate using shared method
+                is_valid, error_msg = self.simulation.validate_building_params(width, height, depth)
+                if not is_valid:
+                    messagebox.showwarning("Invalid Input", error_msg)
+                    return
+                
+                # Create building
+                building = Building(x, z, width=width, height=height, depth=depth)
+                self.simulation.buildings.append(building)
+                dialog.destroy()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Please enter valid numbers")
+        
+        tk.Button(button_frame, text="Create", command=create_building, 
+                 width=10, bg="#51cf66", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Cancel", command=dialog.destroy, 
+                 width=10).pack(side=tk.LEFT, padx=5)
+    
+    def _open_building_dialog_full(self):
+        """
+        Show dialog for adding building with manual position entry (Add Building button case).
+        """
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Add Building")
+        dialog.geometry("320x280")
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.grab_set()  # Modal dialog
+        
+        # Title
+        tk.Label(dialog, text="Add New Building", 
+                font=("Arial", 12, "bold")).pack(pady=10)
+        
+        # Position X input
+        pos_x_frame = tk.Frame(dialog)
+        pos_x_frame.pack(pady=5)
+        tk.Label(pos_x_frame, text="Position X:", width=12, anchor='w').pack(side=tk.LEFT)
+        pos_x_entry = tk.Entry(pos_x_frame, width=10)
+        pos_x_entry.insert(0, "0")
+        pos_x_entry.pack(side=tk.LEFT)
+        
+        # Position Z input
+        pos_z_frame = tk.Frame(dialog)
+        pos_z_frame.pack(pady=5)
+        tk.Label(pos_z_frame, text="Position Z:", width=12, anchor='w').pack(side=tk.LEFT)
+        pos_z_entry = tk.Entry(pos_z_frame, width=10)
+        pos_z_entry.insert(0, "0")
+        pos_z_entry.pack(side=tk.LEFT)
+        
+        # Width input
+        width_frame = tk.Frame(dialog)
+        width_frame.pack(pady=5)
+        tk.Label(width_frame, text="Width:", width=12, anchor='w').pack(side=tk.LEFT)
+        width_entry = tk.Entry(width_frame, width=10)
+        width_entry.insert(0, "3")
+        width_entry.pack(side=tk.LEFT)
+        
+        # Depth input
+        depth_frame = tk.Frame(dialog)
+        depth_frame.pack(pady=5)
+        tk.Label(depth_frame, text="Depth:", width=12, anchor='w').pack(side=tk.LEFT)
+        depth_entry = tk.Entry(depth_frame, width=10)
+        depth_entry.insert(0, "3")
+        depth_entry.pack(side=tk.LEFT)
+        
+        # Height input
+        height_frame = tk.Frame(dialog)
+        height_frame.pack(pady=5)
+        tk.Label(height_frame, text="Height:", width=12, anchor='w').pack(side=tk.LEFT)
+        height_entry = tk.Entry(height_frame, width=10)
+        height_entry.insert(0, "10")
+        height_entry.pack(side=tk.LEFT)
+        
+        # Buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=15)
+        
+        def create_building():
+            try:
+                x = float(pos_x_entry.get())
+                z = float(pos_z_entry.get())
+                width = float(width_entry.get())
+                depth = float(depth_entry.get())
+                height = float(height_entry.get())
+                
+                # Validate using shared method
+                is_valid, error_msg = self.simulation.validate_building_params(width, height, depth, x, z)
+                if not is_valid:
+                    messagebox.showwarning("Invalid Input", error_msg)
+                    return
+                
+                # Create building
+                building = Building(x, z, width=width, height=height, depth=depth)
+                self.simulation.buildings.append(building)
+                dialog.destroy()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Please enter valid numbers")
+        
+        tk.Button(button_frame, text="Create", command=create_building, 
+                 width=10, bg="#51cf66", fg="white").pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Cancel", command=dialog.destroy, 
+                 width=10).pack(side=tk.LEFT, padx=5)
+    
     def run(self):
         """Run the GUI main loop"""
         self.root.mainloop()
@@ -778,8 +850,14 @@ def main():
     # Create simulation
     simulation = CitySimulation()
     
+    # Create shared event queue for cross-thread GUI communication
+    # Tkinter is not thread-safe, so we use a queue to pass GUI requests
+    # from the Pygame thread to the GUI thread (where mainloop runs)
+    gui_event_queue = Queue()
+    simulation.gui_event_queue = gui_event_queue
+    
     # Create and run GUI in separate thread
-    gui = ControlGUI(simulation)
+    gui = ControlGUI(simulation, gui_event_queue)
     gui_thread = threading.Thread(target=gui.run, daemon=True)
     gui_thread.start()
     
