@@ -40,15 +40,18 @@ class Car:
         self.position = 0.0
         self.speed = 0.05  # Units per frame
         
-        # Path parameters
+        # Path parameters - expanded for larger city
+        self.path_start = -75.0
+        self.path_end = 75.0
+        
+        # Lane offset for driving on a specific road
+        # This will be set by create_cars() to assign cars to different roads
         if path_type == 'horizontal':
-            self.path_start = -30.0
-            self.path_end = 30.0
-            self.lane_offset = 1.0  # Drive on right side
+            self.lane_offset = 1.0  # Offset from road center (drive on right side)
+            self.road_position = 0.0  # Z position of the road (can be -50, 0, or 50)
         else:  # vertical
-            self.path_start = -30.0
-            self.path_end = 30.0
             self.lane_offset = 1.0
+            self.road_position = 0.0  # X position of the road (can be -50, 0, or 50)
     
     def update(self, speed_multiplier=1.0):
         """
@@ -69,10 +72,12 @@ class Car:
         # Position car based on path type
         road_height = 0.35  # Match road elevation
         if self.path_type == 'horizontal':
-            glTranslatef(self.position, road_height + self.height / 2, self.lane_offset)
+            # lane_offset is the Z position of the road + small offset to drive on right side
+            glTranslatef(self.position, road_height + self.height / 2, self.lane_offset + 1.0)
             glRotatef(90, 0, 1, 0)  # Rotate to face along x-axis
         else:  # vertical
-            glTranslatef(self.lane_offset, road_height + self.height / 2, self.position)
+            # lane_offset is the X position of the road + small offset to drive on right side
+            glTranslatef(self.lane_offset + 1.0, road_height + self.height / 2, self.position)
             # No rotation needed for vertical (already facing along z-axis)
         
         # Set car color

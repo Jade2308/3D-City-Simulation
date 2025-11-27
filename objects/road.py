@@ -13,17 +13,20 @@ class Road:
         self.line_color = (0.9, 0.9, 0.0)  # Yellow lane markers
         self.edge_color = (0.9, 0.9, 0.9)  # White edge markers
         
-        # Road dimensions
+        # Road dimensions - expanded for larger city
         self.road_width = 8.0  # Width of each road
-        self.road_length = 60.0  # Length of each road
+        self.road_length = 150.0  # Length of each road (expanded from 60)
+        self.grid_spacing = 50.0  # Spacing between parallel roads
         
     def draw(self):
-        """Render the road network"""
-        # Draw main horizontal road (east-west)
-        self.draw_road_segment(-self.road_length/2, 0, self.road_width, self.road_length, 'horizontal')
+        """Render the road network - expanded grid layout"""
+        # Draw horizontal roads (east-west)
+        for offset in [-self.grid_spacing, 0, self.grid_spacing]:
+            self.draw_road_segment(-self.road_length/2, offset, self.road_width, self.road_length, 'horizontal')
         
-        # Draw main vertical road (north-south)
-        self.draw_road_segment(0, -self.road_length/2, self.road_width, self.road_length, 'vertical')
+        # Draw vertical roads (north-south)
+        for offset in [-self.grid_spacing, 0, self.grid_spacing]:
+            self.draw_road_segment(offset, -self.road_length/2, self.road_width, self.road_length, 'vertical')
         
     def draw_road_segment(self, x, z, width, length, orientation):
         """

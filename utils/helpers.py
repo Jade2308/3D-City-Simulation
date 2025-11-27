@@ -33,12 +33,12 @@ def check_collision(x, z, width, depth, existing_buildings):
     return False
 
 
-def generate_random_city(num_buildings=15, num_trees=10):
+def generate_random_city(num_buildings=60, num_trees=40):
     """
-    Generate random city layout
+    Generate random city layout - expanded version with more area
     Args:
         num_buildings: Number of buildings to generate
-        num_trees: Number of trees to generate
+        num_trees: Number of trees to generate (not including road-side trees)
     Returns:
         tuple: (buildings_list, trees_list)
     """
@@ -47,36 +47,59 @@ def generate_random_city(num_buildings=15, num_trees=10):
     
     # Define road dimensions (must match Road class)
     road_width = 8.0
-    road_length = 60.0
+    road_length = 150.0
+    grid_spacing = 50.0  # Spacing between parallel roads
     
     # Define safe zones for buildings (avoiding roads with margin)
-    # Buildings must be farther from road than trees to avoid overlap
-    # Trees are at road_width/2 + 2.0 = 6.0, with foliage extending to 7.0
-    # Buildings can be up to 5 units wide, so half-width = 2.5
-    # To avoid overlap: building_center - 2.5 > 7.0, so building_center > 9.5
-    # Building center at road_width/2 + road_margin, so margin must be > 5.5
-    # Using margin = 7.0 for safety: buildings start at 11.0, inner edge at 8.5
     road_margin = 7.0
     
-    # Quadrant positions (avoiding center cross roads)
-    quadrants = [
-        (-road_length/2, -road_length/2, -(road_width/2 + road_margin), -(road_width/2 + road_margin)),   # Bottom-left
-        (road_width/2 + road_margin, -road_length/2, road_length/2, -(road_width/2 + road_margin)),     # Bottom-right
-        (-road_length/2, road_width/2 + road_margin, -(road_width/2 + road_margin), road_length/2),     # Top-left
-        (road_width/2 + road_margin, road_width/2 + road_margin, road_length/2, road_length/2),       # Top-right
-    ]
+    # Define city blocks (areas between roads)
+    # With 3 horizontal and 3 vertical roads at -50, 0, 50, we have blocks:
+    # Block boundaries are from road edge + margin to next road edge - margin
+    blocks = []
+    road_positions = [-grid_spacing, 0, grid_spacing]
+    
+    # Generate blocks between roads
+    for i in range(len(road_positions) + 1):
+        for j in range(len(road_positions) + 1):
+            # Calculate block boundaries
+            if i == 0:
+                x_min = -road_length/2
+                x_max = road_positions[0] - road_width/2 - road_margin
+            elif i == len(road_positions):
+                x_min = road_positions[-1] + road_width/2 + road_margin
+                x_max = road_length/2
+            else:
+                x_min = road_positions[i-1] + road_width/2 + road_margin
+                x_max = road_positions[i] - road_width/2 - road_margin
+            
+            if j == 0:
+                z_min = -road_length/2
+                z_max = road_positions[0] - road_width/2 - road_margin
+            elif j == len(road_positions):
+                z_min = road_positions[-1] + road_width/2 + road_margin
+                z_max = road_length/2
+            else:
+                z_min = road_positions[j-1] + road_width/2 + road_margin
+                z_max = road_positions[j] - road_width/2 - road_margin
+            
+            # Only add valid blocks (where min < max)
+            if x_min < x_max and z_min < z_max:
+                blocks.append((x_min, z_min, x_max, z_max))
     
     # Generate buildings with collision detection
     attempts = 0
-    max_attempts = num_buildings * 20  # Prevent infinite loop
+    max_attempts = num_buildings * 30  # Prevent infinite loop
     
     while len(buildings) < num_buildings and attempts < max_attempts:
         attempts += 1
         
-        # Pick random quadrant
-        qx_min, qz_min, qx_max, qz_max = random.choice(quadrants)
+        # Pick random block
+        if not blocks:
+            break
+        qx_min, qz_min, qx_max, qz_max = random.choice(blocks)
         
-        # Random position within quadrant
+        # Random position within block
         x = random.uniform(qx_min, qx_max)
         z = random.uniform(qz_min, qz_max)
         
@@ -87,51 +110,47 @@ def generate_random_city(num_buildings=15, num_trees=10):
         if not check_collision(x, z, temp_building.width, temp_building.depth, buildings):
             buildings.append(temp_building)
     
-    # Generate trees along both sides of roads
+    # Generate trees along both sides of all roads
     tree_spacing = 4.0  # Space between trees
-    tree_offset = road_width/2 + 2.0  # Distance from road center (increased to avoid overlap)
+    tree_offset = road_width/2 + 2.0  # Distance from road center
     
-    # Exclusion zone at intersection to prevent trees from overlapping crossing roads
-    intersection_exclusion = road_width/2 + 2.0  # Exclude trees within this distance from center
+    # Exclusion zone at intersections
+    intersection_exclusion = road_width/2 + 2.0
     
-    # Trees along horizontal road (top side)
-    for i in range(int(road_length / tree_spacing)):
-        x = -road_length/2 + i * tree_spacing
-        z = tree_offset
-        # Skip trees in intersection zone
-        if abs(x) > intersection_exclusion:
-            trees.append(Tree(x, z))
+    # Trees along all horizontal roads
+    for road_z in road_positions:
+        for i in range(int(road_length / tree_spacing)):
+            x = -road_length/2 + i * tree_spacing
+            # Skip trees near intersections with vertical roads
+            skip = False
+            for road_x in road_positions:
+                if abs(x - road_x) < intersection_exclusion:
+                    skip = True
+                    break
+            if not skip:
+                trees.append(Tree(x, road_z + tree_offset))
+                trees.append(Tree(x, road_z - tree_offset))
     
-    # Trees along horizontal road (bottom side)
-    for i in range(int(road_length / tree_spacing)):
-        x = -road_length/2 + i * tree_spacing
-        z = -tree_offset
-        # Skip trees in intersection zone
-        if abs(x) > intersection_exclusion:
-            trees.append(Tree(x, z))
-    
-    # Trees along vertical road (left side)
-    for i in range(int(road_length / tree_spacing)):
-        x = -tree_offset
-        z = -road_length/2 + i * tree_spacing
-        # Skip trees in intersection zone
-        if abs(z) > intersection_exclusion:
-            trees.append(Tree(x, z))
-    
-    # Trees along vertical road (right side)
-    for i in range(int(road_length / tree_spacing)):
-        x = tree_offset
-        z = -road_length/2 + i * tree_spacing
-        # Skip trees in intersection zone
-        if abs(z) > intersection_exclusion:
-            trees.append(Tree(x, z))
+    # Trees along all vertical roads
+    for road_x in road_positions:
+        for i in range(int(road_length / tree_spacing)):
+            z = -road_length/2 + i * tree_spacing
+            # Skip trees near intersections with horizontal roads
+            skip = False
+            for road_z in road_positions:
+                if abs(z - road_z) < intersection_exclusion:
+                    skip = True
+                    break
+            if not skip:
+                trees.append(Tree(road_x + tree_offset, z))
+                trees.append(Tree(road_x - tree_offset, z))
     
     return buildings, trees
 
 
-def create_cars(num_cars=4):
+def create_cars(num_cars=8):
     """
-    Create cars for animation
+    Create cars for animation on the expanded road network
     Args:
         num_cars: Number of cars to create
     Returns:
@@ -139,15 +158,24 @@ def create_cars(num_cars=4):
     """
     cars = []
     
-    # Create cars on horizontal and vertical roads
+    # Road positions for the grid (-50, 0, 50)
+    road_positions = [-50.0, 0.0, 50.0]
+    
+    # Create cars on different roads in the grid
     for i in range(num_cars):
         if i % 2 == 0:
             car = Car(path_type='horizontal')
-            # Stagger starting positions
-            car.position = -30.0 + (i * 15)
+            # Assign to different horizontal roads
+            road_index = (i // 2) % len(road_positions)
+            car.lane_offset = road_positions[road_index]
+            # Stagger starting positions across the longer road
+            car.position = -75.0 + (i * 20)
         else:
             car = Car(path_type='vertical')
-            car.position = -30.0 + (i * 15)
+            # Assign to different vertical roads
+            road_index = (i // 2) % len(road_positions)
+            car.lane_offset = road_positions[road_index]
+            car.position = -75.0 + (i * 20)
         
         cars.append(car)
     
