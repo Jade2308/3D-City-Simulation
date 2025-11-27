@@ -17,10 +17,10 @@ class Camera:
         self.yaw = 0.0    # Rotation around Y-axis (left/right)
         self.pitch = -20.0  # Rotation around X-axis (up/down)
         
-        # Camera parameters
-        self.zoom = 30.0
+        # Camera parameters - increased for larger city
+        self.zoom = 80.0  # Start zoomed out more to see the expanded city
         self.min_zoom = 10.0
-        self.max_zoom = 100.0
+        self.max_zoom = 250.0  # Increased to see the larger city
         
         # Look at target
         self.target = np.array([0.0, 0.0, 0.0], dtype=np.float32)
@@ -70,20 +70,20 @@ class Camera:
             view_type: 'top', 'street', or '45'
         """
         if view_type == 'top':
-            # Top-down view
+            # Top-down view - increased zoom for larger city
             self.yaw = 0.0
             self.pitch = -89.0
-            self.zoom = 50.0
+            self.zoom = 150.0
         elif view_type == 'street':
             # Street level view
             self.yaw = 0.0
             self.pitch = -5.0
-            self.zoom = 20.0
+            self.zoom = 25.0
         elif view_type == '45':
-            # 45 degree angled view
+            # 45 degree angled view - increased zoom for larger city
             self.yaw = 45.0
             self.pitch = -30.0
-            self.zoom = 40.0
+            self.zoom = 100.0
     
     def move_target(self, dx, dz):
         """
