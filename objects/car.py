@@ -72,12 +72,12 @@ class Car:
         # Position car based on path type
         road_height = 0.35  # Match road elevation
         if self.path_type == 'horizontal':
-            # lane_offset is the Z position of the road + small offset to drive on right side
-            glTranslatef(self.position, road_height + self.height / 2, self.lane_offset + 1.0)
+            # road_position is the Z position of the road, lane_offset is offset from road center
+            glTranslatef(self.position, road_height + self.height / 2, self.road_position + self.lane_offset)
             glRotatef(90, 0, 1, 0)  # Rotate to face along x-axis
         else:  # vertical
-            # lane_offset is the X position of the road + small offset to drive on right side
-            glTranslatef(self.lane_offset + 1.0, road_height + self.height / 2, self.position)
+            # road_position is the X position of the road, lane_offset is offset from road center
+            glTranslatef(self.road_position + self.lane_offset, road_height + self.height / 2, self.position)
             # No rotation needed for vertical (already facing along z-axis)
         
         # Set car color

@@ -165,16 +165,16 @@ def create_cars(num_cars=8):
     for i in range(num_cars):
         if i % 2 == 0:
             car = Car(path_type='horizontal')
-            # Assign to different horizontal roads
+            # Assign to different horizontal roads (Z position of the road)
             road_index = (i // 2) % len(road_positions)
-            car.lane_offset = road_positions[road_index]
+            car.road_position = road_positions[road_index]
             # Stagger starting positions across the longer road
             car.position = -75.0 + (i * 20)
         else:
             car = Car(path_type='vertical')
-            # Assign to different vertical roads
+            # Assign to different vertical roads (X position of the road)
             road_index = (i // 2) % len(road_positions)
-            car.lane_offset = road_positions[road_index]
+            car.road_position = road_positions[road_index]
             car.position = -75.0 + (i * 20)
         
         cars.append(car)
